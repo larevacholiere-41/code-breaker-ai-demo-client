@@ -12,7 +12,7 @@ function App() {
     <>
       <QueryClientProvider client={queryClient}>
         <ConfigProvider theme={themeConfig}>
-          <BrowserRouter basename={import.meta.env.VITE_BASE_URL}>
+          <BrowserRouter basename={import.meta.env.VITE_BASE_ROUTE}>
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/game/:gameId" element={<GamePage />} />
