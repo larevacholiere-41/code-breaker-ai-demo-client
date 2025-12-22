@@ -1,19 +1,27 @@
-import { useState } from 'react'
+import { ConfigProvider } from "antd";
+import { Routes, Route, BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import themeConfig from "./AntDesignTheme";
+import { HomePage } from "./pages/home";
+import { GamePage } from "./pages/game";
+import "./App.sass";
 
 function App() {
-  const [count, setCount] = useState(0)
-
+  const queryClient = new QueryClient();
   return (
     <>
-      <div>
-        <h1>Code Breaker AI Demo</h1>
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-      </div>
+      <QueryClientProvider client={queryClient}>
+        <ConfigProvider theme={themeConfig}>
+          <BrowserRouter basename={import.meta.env.VITE_BASE_URL}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/game/:gameId" element={<GamePage />} />
+            </Routes>
+          </BrowserRouter>
+        </ConfigProvider>
+      </QueryClientProvider>
     </>
-  )
+  );
 }
 
-export default App
-
+export default App;
