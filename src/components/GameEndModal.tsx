@@ -1,0 +1,61 @@
+import { Modal, Typography, Space } from "antd";
+import { TrophyOutlined } from "@ant-design/icons";
+
+const { Title, Text } = Typography;
+
+interface GameEndModalProps {
+  open: boolean;
+  onClose: () => void;
+  winner: "player_1" | "player_2" | null;
+}
+
+export const GameEndModal = ({ open, onClose, winner }: GameEndModalProps) => {
+  const winnerName = winner === "player_1" ? "You" : "AI";
+
+  return (
+    <Modal
+      title={
+        <Space>
+          <TrophyOutlined style={{ color: "#ffd700" }} />
+          <span>Game Ended</span>
+        </Space>
+      }
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      closable
+      centered
+    >
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        <Text style={{ fontSize: "1rem" }}>The game has ended.</Text>
+        {winner ? (
+          <div>
+            <Text style={{ fontSize: "1rem" }}>
+              Winner: <strong>{winnerName}</strong>
+            </Text>
+            {winner === "player_1" && (
+              <div style={{ marginTop: "1rem" }}>
+                <Title level={4} style={{ margin: 0, color: "#64ffda" }}>
+                  🎉 Congratulations! 🎉
+                </Title>
+                <Text
+                  style={{
+                    fontSize: "0.95rem",
+                    display: "block",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  You've successfully outsmarted the AI!
+                </Text>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Text style={{ fontSize: "1rem" }}>
+            The game ended without a winner.
+          </Text>
+        )}
+      </Space>
+    </Modal>
+  );
+};

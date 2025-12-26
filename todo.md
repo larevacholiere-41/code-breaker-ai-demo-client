@@ -1,0 +1,5 @@
+- [x] Add navigation controls
+- [ ] Show a modal when the game is completed
+- [ ] Save game ids in local storage and show them in the home page
+- [ ] implement AI vs AI mode
+- [ ] Break down main components into smaller components

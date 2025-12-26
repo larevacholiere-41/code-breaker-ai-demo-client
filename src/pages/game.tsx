@@ -11,25 +11,30 @@ import {
   Row,
   Col,
   Divider,
+  message,
 } from "antd";
 import {
   UserOutlined,
   RobotOutlined,
   CommentOutlined,
+  CopyOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { getThemeToken } from "../helpers";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useGameState } from "../hooks/useGameState";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Guess } from "../types/gameApi";
 import { makeGuessMutationFn } from "../mutations/games";
 import { useMutation } from "@tanstack/react-query";
+import { GameEndModal } from "../components/GameEndModal";
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 
 export const GamePage = () => {
   const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
   const themeToken = getThemeToken();
   const { gameState, error } = useGameState(gameId || "");
   const [guessInput, setGuessInput] = useState("");
@@ -37,9 +42,34 @@ export const GamePage = () => {
   const [expandedReasoning, setExpandedReasoning] = useState<Set<number>>(
     new Set()
   );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const prevStatus = useRef<string | null>(null);
   const makeGuessMutation = useMutation({
     mutationFn: (guess: string) => makeGuessMutationFn(gameId || "", guess),
   });
+
+  // Show modal once when game status changes to "completed"
+  useEffect(() => {
+    if (
+      gameState?.status === "completed" &&
+      prevStatus.current &&
+      prevStatus.current !== "completed"
+    ) {
+      setIsModalOpen(true);
+    }
+    prevStatus.current = gameState?.status ?? null;
+  }, [gameState?.status]);
+
+  const handleCopyGameId = async () => {
+    if (gameId) {
+      try {
+        await navigator.clipboard.writeText(gameId);
+        message.success("Game ID copied to clipboard!");
+      } catch (err) {
+        message.error("Failed to copy game ID");
+      }
+    }
+  };
 
   const validateGuess = (code: string): string => {
     if (code.length === 0) {
@@ -151,24 +181,66 @@ export const GamePage = () => {
 
   return (
     <Layout style={{ minHeight: "100vh", width: "100%", padding: "2rem" }}>
-      <Content style={{ maxWidth: "1200px", margin: "0 auto" }}>
+      <Content style={{ maxWidth: "1200px", margin: "0 auto", width: "100%" }}>
         <Space orientation="vertical" size="large" style={{ width: "100%" }}>
           <div>
-            <Title level={1}>Game #{gameState.game_id}</Title>
-            <Space>
-              <Tag color={gameState.status === "completed" ? "green" : "blue"}>
-                {gameState.status === "completed" ? "Completed" : "In Progress"}
-              </Tag>
-              {gameState.winner && (
-                <Tag color="gold">
-                  Winner: {gameState.winner === "player_1" ? "You" : "AI"}
+            <Space style={{ marginBottom: "1rem" }}>
+              <Button
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate("/")}
+                type="default"
+              >
+                Back to Main
+              </Button>
+            </Space>
+            <Title level={1}>Player vs AI</Title>
+            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+              <Space>
+                <Text type="secondary" style={{ fontSize: "0.875rem" }}>
+                  Game ID:
+                </Text>
+                <Card
+                  size="small"
+                  style={{
+                    display: "inline-block",
+                    padding: "0",
+                    margin: 0,
+                  }}
+                  bodyStyle={{ padding: "0.25rem 0.5rem" }}
+                >
+                  <Space size="small">
+                    <Text code style={{ fontSize: "0.875rem" }}>
+                      {gameState.game_id}
+                    </Text>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<CopyOutlined />}
+                      onClick={handleCopyGameId}
+                      style={{ padding: 0, height: "auto" }}
+                    />
+                  </Space>
+                </Card>
+              </Space>
+              <Space>
+                <Tag
+                  color={gameState.status === "completed" ? "green" : "blue"}
+                >
+                  {gameState.status === "completed"
+                    ? "Completed"
+                    : "In Progress"}
                 </Tag>
-              )}
-              {!isGameCompleted && (
-                <Tag color={isPlayer1Turn ? "green" : "orange"}>
-                  {isPlayer1Turn ? "Your Turn" : "AI's Turn"}
-                </Tag>
-              )}
+                {gameState.winner && (
+                  <Tag color="gold">
+                    Winner: {gameState.winner === "player_1" ? "You" : "AI"}
+                  </Tag>
+                )}
+                {!isGameCompleted && (
+                  <Tag color={isPlayer1Turn ? "green" : "orange"}>
+                    {isPlayer1Turn ? "Your Turn" : "AI's Turn"}
+                  </Tag>
+                )}
+              </Space>
             </Space>
           </div>
 
@@ -182,6 +254,7 @@ export const GamePage = () => {
                 status={validationError ? "error" : ""}
                 disabled={!isPlayer1Turn || isGameCompleted}
                 style={{ flex: 1 }}
+                inputMode="numeric"
                 onPressEnter={
                   isGuessValid && isPlayer1Turn && !isGameCompleted
                     ? handleSubmitGuess
@@ -343,6 +416,11 @@ export const GamePage = () => {
           </Card>
         </Space>
       </Content>
+      <GameEndModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        winner={gameState.winner}
+      />
     </Layout>
   );
 };
