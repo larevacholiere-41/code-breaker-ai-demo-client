@@ -7,10 +7,22 @@ interface GameEndModalProps {
   open: boolean;
   onClose: () => void;
   winner: "player_1" | "player_2" | null;
+  isAiVsAiMode?: boolean;
 }
 
-export const GameEndModal = ({ open, onClose, winner }: GameEndModalProps) => {
-  const winnerName = winner === "player_1" ? "You" : "AI";
+export const GameEndModal = ({
+  open,
+  onClose,
+  winner,
+  isAiVsAiMode = false,
+}: GameEndModalProps) => {
+  const winnerName = isAiVsAiMode
+    ? winner === "player_1"
+      ? "AI Player 1"
+      : "AI Player 2"
+    : winner === "player_1"
+    ? "You"
+    : "AI";
 
   return (
     <Modal
@@ -33,7 +45,7 @@ export const GameEndModal = ({ open, onClose, winner }: GameEndModalProps) => {
             <Text style={{ fontSize: "1rem" }}>
               Winner: <strong>{winnerName}</strong>
             </Text>
-            {winner === "player_1" && (
+            {!isAiVsAiMode && winner === "player_1" && (
               <div style={{ marginTop: "1rem" }}>
                 <Title level={4} style={{ margin: 0, color: "#64ffda" }}>
                   🎉 Congratulations! 🎉
@@ -46,6 +58,19 @@ export const GameEndModal = ({ open, onClose, winner }: GameEndModalProps) => {
                   }}
                 >
                   You've successfully outsmarted the AI!
+                </Text>
+              </div>
+            )}
+            {isAiVsAiMode && (
+              <div style={{ marginTop: "1rem" }}>
+                <Text
+                  style={{
+                    fontSize: "0.95rem",
+                    display: "block",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  {winnerName} successfully figured out the secret code first!
                 </Text>
               </div>
             )}

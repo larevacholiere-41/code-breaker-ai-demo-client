@@ -15,7 +15,7 @@ function App() {
           <BrowserRouter basename={import.meta.env.VITE_BASE_ROUTE}>
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/game/:gameId" element={<GamePage />} />
+              <Route path="/game/:gameId/:mode?" element={<GamePage />} />
             </Routes>
           </BrowserRouter>
         </ConfigProvider>

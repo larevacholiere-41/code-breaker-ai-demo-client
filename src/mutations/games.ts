@@ -9,6 +9,14 @@ export const createVsAiGameMutationFn = async (
   return response.data;
 };
 
+export const createAiVsAiGameMutationFn = async (
+  secret: string
+): Promise<GameState> => {
+  const url = `${import.meta.env.VITE_API_URL}/start-new-game-ai-vs-ai`;
+  const response = await axios.post(url, {}, { params: { secret } });
+  return response.data;
+};
+
 export const makeGuessMutationFn = async (
   gameId: string,
   guess: string

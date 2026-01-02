@@ -13,7 +13,10 @@ import { UserOutlined, RobotOutlined } from "@ant-design/icons";
 import { getThemeToken } from "../helpers";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { createVsAiGameMutationFn } from "../mutations/games";
+import {
+  createVsAiGameMutationFn,
+  createAiVsAiGameMutationFn,
+} from "../mutations/games";
 import { useNavigate } from "react-router-dom";
 
 const { Title, Paragraph, Text } = Typography;
@@ -23,10 +26,14 @@ export const HomePage = () => {
   const navigate = useNavigate();
   const themeToken = getThemeToken();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAiVsAiModalOpen, setIsAiVsAiModalOpen] = useState(false);
   const [secretCode, setSecretCode] = useState("");
   const [validationError, setValidationError] = useState<string>("");
   const createVsAiGameMutation = useMutation({
     mutationFn: createVsAiGameMutationFn,
+  });
+  const createAiVsAiGameMutation = useMutation({
+    mutationFn: createAiVsAiGameMutationFn,
   });
 
   const validateSecretCode = (code: string): string => {
@@ -54,6 +61,12 @@ export const HomePage = () => {
     setValidationError("");
   };
 
+  const handleAiVsAiModalClose = () => {
+    setIsAiVsAiModalOpen(false);
+    setSecretCode("");
+    setValidationError("");
+  };
+
   const handleCodeChange = (value: string) => {
     const cleanedValue = value.replace(/\D/g, "").slice(0, 4);
     setSecretCode(cleanedValue);
@@ -74,11 +87,23 @@ export const HomePage = () => {
     handleModalClose();
   };
 
+  const handleStartAiVsAiGame = () => {
+    console.log("Starting AI vs AI game with secret code:", secretCode);
+    createAiVsAiGameMutation
+      .mutateAsync(secretCode)
+      .then((gamestate) => {
+        navigate(`/game/${gamestate.game_id}/ai-vs-ai`);
+      })
+      .catch((error) => {
+        console.error("Error starting AI vs AI game:", error);
+      });
+    handleAiVsAiModalClose();
+  };
+
   const isCodeValid = secretCode.length === 4 && validationError === "";
 
   const handleAiVsAiClick = () => {
-    // Placeholder function
-    console.log("AI vs AI mode clicked");
+    setIsAiVsAiModalOpen(true);
   };
 
   return (
@@ -193,7 +218,55 @@ export const HomePage = () => {
             <Button
               type="primary"
               onClick={handleStartGame}
-              disabled={!isCodeValid}
+              disabled={!isCodeValid || createVsAiGameMutation.isPending}
+              loading={createVsAiGameMutation.isPending}
+              block
+            >
+              Start Game
+            </Button>
+          </Space>
+        </Modal>
+
+        <Modal
+          title="Enter Secret Code for Both AIs"
+          open={isAiVsAiModalOpen}
+          onCancel={handleAiVsAiModalClose}
+          footer={null}
+          closable={createAiVsAiGameMutation.isPending}
+        >
+          <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+            <div>
+              <Text>
+                Enter a four-digit secret code (0-9, unique digits) that both AI
+                players will try to figure out:
+              </Text>
+              <Input
+                value={secretCode}
+                onChange={(e) => handleCodeChange(e.target.value)}
+                placeholder="0000"
+                maxLength={4}
+                status={validationError ? "error" : ""}
+                style={{ marginTop: "0.5rem" }}
+                onPressEnter={isCodeValid ? handleStartAiVsAiGame : undefined}
+              />
+              {validationError && (
+                <Text
+                  type="danger"
+                  style={{
+                    fontSize: "0.875rem",
+                    display: "block",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  {validationError}
+                </Text>
+              )}
+            </div>
+            <Button
+              type="primary"
+              onClick={handleStartAiVsAiGame}
+              disabled={!isCodeValid || createAiVsAiGameMutation.isPending}
+              loading={createAiVsAiGameMutation.isPending}
               block
             >
               Start Game

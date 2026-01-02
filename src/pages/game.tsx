@@ -33,7 +33,7 @@ const { Title, Text } = Typography;
 const { Content } = Layout;
 
 export const GamePage = () => {
-  const { gameId } = useParams<{ gameId: string }>();
+  const { gameId, mode } = useParams<{ gameId: string; mode?: string }>();
   const navigate = useNavigate();
   const themeToken = getThemeToken();
   const { gameState, error } = useGameState(gameId || "");
@@ -47,6 +47,10 @@ export const GamePage = () => {
   const makeGuessMutation = useMutation({
     mutationFn: (guess: string) => makeGuessMutationFn(gameId || "", guess),
   });
+
+  // Determine game mode (default to player-vs-ai)
+  const gameMode = mode || "player-vs-ai";
+  const isAiVsAiMode = gameMode === "ai-vs-ai";
 
   // Show modal once when game status changes to "completed"
   useEffect(() => {
@@ -193,7 +197,9 @@ export const GamePage = () => {
                 Back to Main
               </Button>
             </Space>
-            <Title level={1}>Player vs AI</Title>
+            <Title level={1}>
+              {isAiVsAiMode ? "AI vs AI" : "Player vs AI"}
+            </Title>
             <Space direction="vertical" size="small" style={{ width: "100%" }}>
               <Space>
                 <Text type="secondary" style={{ fontSize: "0.875rem" }}>
@@ -232,73 +238,99 @@ export const GamePage = () => {
                 </Tag>
                 {gameState.winner && (
                   <Tag color="gold">
-                    Winner: {gameState.winner === "player_1" ? "You" : "AI"}
+                    Winner:{" "}
+                    {isAiVsAiMode
+                      ? gameState.winner === "player_1"
+                        ? "AI Player 1"
+                        : "AI Player 2"
+                      : gameState.winner === "player_1"
+                      ? "You"
+                      : "AI"}
                   </Tag>
                 )}
                 {!isGameCompleted && (
                   <Tag color={isPlayer1Turn ? "green" : "orange"}>
-                    {isPlayer1Turn ? "Your Turn" : "AI's Turn"}
+                    {isAiVsAiMode
+                      ? isPlayer1Turn
+                        ? "AI Player 1's Turn"
+                        : "AI Player 2's Turn"
+                      : isPlayer1Turn
+                      ? "Your Turn"
+                      : "AI's Turn"}
                   </Tag>
                 )}
               </Space>
             </Space>
           </div>
 
-          <Card title="Submit Guess" style={{ width: "100%" }}>
-            <Space.Compact style={{ width: "100%" }}>
-              <Input
-                value={guessInput}
-                onChange={(e) => handleGuessChange(e.target.value)}
-                placeholder="Enter 4 unique digits (0-9)"
-                maxLength={4}
-                status={validationError ? "error" : ""}
-                disabled={!isPlayer1Turn || isGameCompleted}
-                style={{ flex: 1 }}
-                inputMode="numeric"
-                onPressEnter={
-                  isGuessValid && isPlayer1Turn && !isGameCompleted
-                    ? handleSubmitGuess
-                    : undefined
-                }
-              />
-              <Button
-                type="primary"
-                onClick={handleSubmitGuess}
-                disabled={!isGuessValid || !isPlayer1Turn || isGameCompleted}
-              >
-                Submit Guess
-              </Button>
-            </Space.Compact>
-            {validationError && (
-              <Text
-                type="danger"
-                style={{
-                  fontSize: "0.875rem",
-                  display: "block",
-                  marginTop: "0.5rem",
-                }}
-              >
-                {validationError}
+          {!isAiVsAiMode && (
+            <Card title="Submit Guess" style={{ width: "100%" }}>
+              <Space.Compact style={{ width: "100%" }}>
+                <Input
+                  value={guessInput}
+                  onChange={(e) => handleGuessChange(e.target.value)}
+                  placeholder="Enter 4 unique digits (0-9)"
+                  maxLength={4}
+                  status={validationError ? "error" : ""}
+                  disabled={!isPlayer1Turn || isGameCompleted}
+                  style={{ flex: 1 }}
+                  inputMode="numeric"
+                  onPressEnter={
+                    isGuessValid && isPlayer1Turn && !isGameCompleted
+                      ? handleSubmitGuess
+                      : undefined
+                  }
+                />
+                <Button
+                  type="primary"
+                  onClick={handleSubmitGuess}
+                  disabled={!isGuessValid || !isPlayer1Turn || isGameCompleted}
+                >
+                  Submit Guess
+                </Button>
+              </Space.Compact>
+              {validationError && (
+                <Text
+                  type="danger"
+                  style={{
+                    fontSize: "0.875rem",
+                    display: "block",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  {validationError}
+                </Text>
+              )}
+              {!isPlayer1Turn && !isGameCompleted && (
+                <Text
+                  type="secondary"
+                  style={{
+                    fontSize: "0.875rem",
+                    display: "block",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  Waiting for AI to make a move...
+                </Text>
+              )}
+            </Card>
+          )}
+
+          {isAiVsAiMode && !isGameCompleted && (
+            <Card title="Game Status" style={{ width: "100%" }}>
+              <Text type="secondary">
+                Observing AI players compete. The game will update automatically
+                as each AI makes their moves.
               </Text>
-            )}
-            {!isPlayer1Turn && !isGameCompleted && (
-              <Text
-                type="secondary"
-                style={{
-                  fontSize: "0.875rem",
-                  display: "block",
-                  marginTop: "0.5rem",
-                }}
-              >
-                Waiting for AI to make a move...
-              </Text>
-            )}
-          </Card>
+            </Card>
+          )}
 
           <Card title="Game History" style={{ width: "100%" }}>
             {rounds.length === 0 ? (
               <Text type="secondary">
-                No guesses yet. Make your first guess!
+                {isAiVsAiMode
+                  ? "No guesses yet. Waiting for AI players to start..."
+                  : "No guesses yet. Make your first guess!"}
               </Text>
             ) : (
               <Space
@@ -307,6 +339,9 @@ export const GamePage = () => {
                 style={{ width: "100%" }}
               >
                 {rounds.map((round, roundIndex) => {
+                  const originalPlayer1Index = round.player1
+                    ? gameState.history.findIndex((g) => g === round.player1)
+                    : -1;
                   const originalPlayer2Index = round.player2
                     ? gameState.history.findIndex((g) => g === round.player2)
                     : -1;
@@ -321,10 +356,18 @@ export const GamePage = () => {
                               style={{ width: "100%" }}
                             >
                               <Space>
-                                <UserOutlined
-                                  style={{ color: themeToken.colorPrimary }}
-                                />
-                                <Text strong>You</Text>
+                                {isAiVsAiMode ? (
+                                  <RobotOutlined
+                                    style={{ color: themeToken.colorPrimary }}
+                                  />
+                                ) : (
+                                  <UserOutlined
+                                    style={{ color: themeToken.colorPrimary }}
+                                  />
+                                )}
+                                <Text strong>
+                                  {isAiVsAiMode ? "AI Player 1" : "You"}
+                                </Text>
                                 <Text>guessed:</Text>
                                 <Text code style={{ fontSize: "1.2rem" }}>
                                   {round.player1.code}
@@ -334,10 +377,51 @@ export const GamePage = () => {
                                 <Text>Feedback: </Text>
                                 <Tag color="blue">{round.player1.feedback}</Tag>
                               </div>
+                              {isAiVsAiMode && round.player1.comments && (
+                                <div>
+                                  <Button
+                                    type="link"
+                                    icon={<CommentOutlined />}
+                                    onClick={() =>
+                                      handleToggleReasoning(
+                                        originalPlayer1Index
+                                      )
+                                    }
+                                    style={{
+                                      padding: 0,
+                                      fontSize: "0.875rem",
+                                    }}
+                                  >
+                                    {expandedReasoning.has(originalPlayer1Index)
+                                      ? "Hide"
+                                      : "View"}{" "}
+                                    AI Reasoning
+                                  </Button>
+                                  {expandedReasoning.has(
+                                    originalPlayer1Index
+                                  ) && (
+                                    <div
+                                      style={{
+                                        marginTop: "0.5rem",
+                                        padding: "1rem",
+                                        backgroundColor:
+                                          themeToken.colorBgContainer,
+                                        borderRadius: "4px",
+                                        whiteSpace: "pre-wrap",
+                                        fontSize: "0.875rem",
+                                      }}
+                                    >
+                                      {round.player1.comments}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </Space>
                           ) : (
                             <Text type="secondary">
-                              Waiting for your guess...
+                              {isAiVsAiMode
+                                ? "Waiting for AI Player 1's guess..."
+                                : "Waiting for your guess..."}
                             </Text>
                           )}
                         </Col>
@@ -351,7 +435,9 @@ export const GamePage = () => {
                                 <RobotOutlined
                                   style={{ color: themeToken.colorSuccess }}
                                 />
-                                <Text strong>AI</Text>
+                                <Text strong>
+                                  {isAiVsAiMode ? "AI Player 2" : "AI"}
+                                </Text>
                                 <Text>guessed:</Text>
                                 <Text code style={{ fontSize: "1.2rem" }}>
                                   {round.player2.code}
@@ -400,7 +486,9 @@ export const GamePage = () => {
                             </Space>
                           ) : (
                             <Text type="secondary">
-                              Waiting for AI guess...
+                              {isAiVsAiMode
+                                ? "Waiting for AI Player 2's guess..."
+                                : "Waiting for AI guess..."}
                             </Text>
                           )}
                         </Col>
@@ -420,6 +508,7 @@ export const GamePage = () => {
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         winner={gameState.winner}
+        isAiVsAiMode={isAiVsAiMode}
       />
     </Layout>
   );
